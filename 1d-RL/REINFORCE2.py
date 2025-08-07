@@ -196,6 +196,9 @@ def train_reinforce(n_episodes=5000, max_steps=20, gamma=0.99, visualize_every=5
         writer.add_scalar("Policy/LogStd", agent.log_std, episode)
         writer.add_scalar("Policy/Std", policy_std, episode)
 
+        if episode % 10 == 0:
+            writer.flush()
+
         # MLflow logging (using the active run from main)
         mlflow.log_metric("reward_total", total_reward, step=episode)
         mlflow.log_metric("reward_mean", mean_reward, step=episode)
@@ -400,12 +403,13 @@ def main():
         # Log hyperparameters
         mlflow.log_param("learning_rate_mean", 0.005)
         mlflow.log_param("learning_rate_std", 0.0005)
-        mlflow.log_param("n_episodes", 5000)
+        n_episodes = 500
+        mlflow.log_param("n_episodes", n_episodes)
         mlflow.log_param("gamma", 0.99)
         mlflow.log_param("max_steps", 20)
 
         # Train agent (this will use the active MLflow run)
-        env, agent = train_reinforce(n_episodes=5000, visualize_every=100)
+        env, agent = train_reinforce(n_episodes=n_episodes, visualize_every=100)
 
         # Log final policy parameters
         mlflow.log_metric("final_w1", agent.w1)
