@@ -7,9 +7,12 @@ FIXED: Proper handling of large action spaces [-10, 10]
 import mlflow
 import mlflow.tensorflow
 import numpy as np
+from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 import math
+import os
+import time
 
 # Set random seed for reproducibility
 np.random.seed(42)
@@ -146,62 +149,71 @@ def apply_baseline(returns):
     
     return returns
 
+
 def train_reinforce(n_episodes=5000, max_steps=20, gamma=0.99, visualize_every=50):
-    """Train REINFORCE agent"""
-    
+    """Train REINFORCE agent with MLflow and TensorBoard logging"""
+
     # Initialize environment and agent
     env = Environment()
     agent = REINFORCEAgent()
-    
-    # Set up visualization
-    plt.ion()
-    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-    ax1, ax2, ax3, ax4 = axes.flat
-    axes = [ax1, ax1.twinx(), ax2, ax3, ax4]
-    fig.suptitle('REINFORCE Training Progress')
-    
-    for episode in range(n_episodes):
-        # Storage for this episode
-        states = []
-        actions = []
-        rewards = []
-        
-        # Reset environment
-        state = env.reset()
-        
-        # Generate episode
-        for step in range(max_steps):
-            states.append(state)
-            
-            # Sample action from policy
-            action = agent.sample_action(state)
-            actions.append(action)
-            
-            # Get reward and transition
-            reward = env.reward(state)
-            rewards.append(reward)
-            
-            # Move to next state
-            state = env.transition(state, action)
-        
-        # Compute returns and apply baseline
-        returns = compute_returns(rewards, gamma)
-        returns = apply_baseline(returns)
-        
-        # Update policy
-        agent.update_policy(states, actions, returns)
-        
-        # Store results
-        agent.episode_rewards.append(sum(rewards))
-        agent.policy_params.append([agent.w1, agent.b1, agent.log_std])
-        
-        # Visualization
-        if episode % visualize_every == 0 or episode == 0:
-            axes[1].clear()
-            visualize_training(env, agent, episode, states, fig, axes)
-            plt.pause(0.01)
-    
-    plt.ioff()
+
+    # Set up logging directories
+    tb_log_dir = f"runs/reinforce_{int(time.time())}"
+    writer = SummaryWriter(log_dir=tb_log_dir)
+
+    # Start MLflow experiment
+    with mlflow.start_run(run_name=f"REINFORCE_{int(time.time())}"):
+
+        # Log hyperparameters
+        mlflow.log_param("gamma", gamma)
+        mlflow.log_param("n_episodes", n_episodes)
+        mlflow.log_param("max_steps", max_steps)
+
+        for episode in range(n_episodes):
+            states = []
+            actions = []
+            rewards = []
+
+            state = env.reset()
+
+            for step in range(max_steps):
+                states.append(state)
+                action = agent.sample_action(state)
+                actions.append(action)
+
+                reward = env.reward(state)
+                rewards.append(reward)
+
+                state = env.transition(state, action)
+
+            returns = compute_returns(rewards, gamma)
+            returns = apply_baseline(returns)
+            agent.update_policy(states, actions, returns)
+
+            total_reward = sum(rewards)
+            mean_reward = np.mean(rewards)
+            policy_std = np.exp(agent.log_std)
+
+            # Store for in-code inspection
+            agent.episode_rewards.append(total_reward)
+            agent.policy_params.append([agent.w1, agent.b1, agent.log_std])
+
+            # TensorBoard logging
+            writer.add_scalar("Reward/Total", total_reward, episode)
+            writer.add_scalar("Reward/Mean", mean_reward, episode)
+            writer.add_scalar("Policy/LogStd", agent.log_std, episode)
+            writer.add_scalar("Policy/Std", policy_std, episode)
+
+            # MLflow logging
+            mlflow.log_metric("reward_total", total_reward, step=episode)
+            mlflow.log_metric("reward_mean", mean_reward, step=episode)
+            mlflow.log_metric("policy_std", policy_std, step=episode)
+
+        # Save TensorBoard logs as MLflow artifact
+        writer.flush()
+        writer.close()
+        mlflow.log_artifacts(tb_log_dir, artifact_path="tensorboard_logs")
+
     return env, agent
 
 def visualize_training(env, agent, episode, last_states, fig, axes):
