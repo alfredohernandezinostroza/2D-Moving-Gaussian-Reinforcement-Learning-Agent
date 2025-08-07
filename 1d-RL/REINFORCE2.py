@@ -4,7 +4,8 @@ This demo shows how policy gradient methods work using REINFORCE
 on a simple 1D problem where the agent must find the peak of a Gaussian reward
 FIXED: Proper handling of large action spaces [-10, 10]
 """
-
+import mlflow
+import mlflow.tensorflow
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
@@ -387,15 +388,39 @@ def main():
     print("5. Bounds on log_std to prevent extreme values")
     print("6. Increased initial exploration (higher initial std)")
     print("\nTraining in progress...")
-    
-    # Train the agent
-    env, agent = train_reinforce(n_episodes=5000, visualize_every=100)
-    
-    # Test the learned policy
-    test_learned_policy(env, agent)
-    
-    print("\nThese changes allow learning in the realistic [-10,10] action space!")
-    print("The agent learns to navigate toward the reward peak at state=2.0")
+
+    mlflow.set_experiment("REINFORCE_1D_Gaussian_Control")
+    with mlflow.start_run():
+        # Log hyperparameters
+        mlflow.log_param("learning_rate_mean", 0.005)
+        mlflow.log_param("learning_rate_std", 0.0005)
+        mlflow.log_param("n_episodes", 5000)
+
+        # Train agent
+        env, agent = train_reinforce(n_episodes=5000, visualize_every=100)
+
+        # Log reward history
+        for i, reward in enumerate(agent.episode_rewards):
+            mlflow.log_metric("reward", reward, step=i)
+
+        # Log final policy parameters
+        mlflow.log_metric("final_w1", agent.w1)
+        mlflow.log_metric("final_b1", agent.b1)
+        mlflow.log_metric("final_std", agent.policy_std())
+
+        # Log final average reward over last 50 episodes
+        if len(agent.episode_rewards) >= 50:
+            avg_reward = np.mean(agent.episode_rewards[-50:])
+            mlflow.log_metric("final_avg_reward", avg_reward)
+
+        # Test policy (visualize)
+        test_learned_policy(env, agent)
+
+        print("\nTraining complete. Results logged to MLflow.")
+
+        
+        print("\nThese changes allow learning in the realistic [-10,10] action space!")
+        print("The agent learns to navigate toward the reward peak at state=2.0")
 
 if __name__ == "__main__":
     main()
