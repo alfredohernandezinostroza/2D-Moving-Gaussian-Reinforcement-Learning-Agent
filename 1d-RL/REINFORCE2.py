@@ -13,6 +13,8 @@ from matplotlib.patches import Polygon
 import math
 import os
 import time
+from pathlib import Path
+from urllib.parse import quote
 from functools import wraps
 
 def timeit(func):
@@ -166,7 +168,7 @@ def apply_baseline(returns):
     return returns
 
 @timeit
-def train_reinforce(n_episodes=5000, max_steps=20, gamma=0.99, visualize_every=1):
+def train_reinforce(experiment_name, run_name=None, n_episodes=5000, max_steps=20, gamma=0.99, visualize_every=1):
     """Train REINFORCE agent with TensorBoard logging (MLflow managed externally)"""
 
     # Initialize environment and agent
@@ -174,8 +176,12 @@ def train_reinforce(n_episodes=5000, max_steps=20, gamma=0.99, visualize_every=1
     agent = REINFORCEAgent()
 
     # Set up TensorBoard logging
-    tb_log_dir = f"runs/reinforce_{int(time.time())}"
-    writer = SummaryWriter(log_dir=tb_log_dir)
+    if run_name is None:
+        run_name = f"time_id_{int(time.time())}"
+    tensorboard_dir = Path("runs", experiment_name, f"reinforce_{run_name}")
+    writer = SummaryWriter(log_dir=str(tensorboard_dir))
+    print(f"TensorBoard logs will be saved to: {tensorboard_dir}")
+    mlflow.set_tag("tensorboard_url", f"http://localhost:6006/#scalars&run={quote(run_name)}")
 
     for episode in range(n_episodes):
         states = []
@@ -224,7 +230,7 @@ def train_reinforce(n_episodes=5000, max_steps=20, gamma=0.99, visualize_every=1
     # Save TensorBoard logs as MLflow artifact
     writer.flush()
     writer.close()
-    mlflow.log_artifacts(tb_log_dir, artifact_path="tensorboard_logs")
+    mlflow.log_artifacts(tensorboard_dir, artifact_path="tensorboard_logs")
 
     return env, agent
 @timeit
@@ -475,9 +481,11 @@ def main():
     visualize_every=10
     # env, agent = train_reinforce_plot(n_episodes=n_episodes, visualize_every=visualize_every)
 
-    mlflow.set_experiment("REINFORCE_1D_Gaussian_Control")
+    experiment = mlflow.set_experiment("REINFORCE_1D_Gaussian_Control")
     
-    with mlflow.start_run():
+    with mlflow.start_run() as run:
+        run_name = run.info.run_name
+        print(f"MLflow run started with ID: {run_name}")
         # Log hyperparameters
         mlflow.log_param("learning_rate_mean", 0.005)
         mlflow.log_param("learning_rate_std", 0.0005)
@@ -487,7 +495,7 @@ def main():
 
         # Train agent (this will use the active MLflow run)
     
-        env, agent = train_reinforce(n_episodes=n_episodes, visualize_every=visualize_every)
+        env, agent = train_reinforce(experiment.name,run_name=run_name ,n_episodes=n_episodes, visualize_every=visualize_every)
 
         # Log final policy parameters
         mlflow.log_metric("final_w1", agent.w1)
