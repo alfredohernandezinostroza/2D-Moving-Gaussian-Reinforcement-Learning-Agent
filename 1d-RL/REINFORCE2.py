@@ -168,6 +168,66 @@ def apply_baseline(returns):
     return returns
 
 @timeit
+def train_agent(experiment_name, run_name, env, agent, n_episodes=5000, max_steps=20, gamma=0.99, visualize_every=1):
+    """Train REINFORCE agent with TensorBoard logging (MLflow managed externally)"""
+
+    # Set up TensorBoard logging
+    tensorboard_dir = Path("runs", experiment_name, f"reinforce_{run_name}")
+    writer = SummaryWriter(log_dir=str(tensorboard_dir))
+    print(f"TensorBoard logs will be saved to: {tensorboard_dir}")
+    mlflow.set_tag("tensorboard_url", f"http://localhost:6006/#scalars&run={quote(run_name)}")
+
+    for episode in range(n_episodes):
+        states = []
+        actions = []
+        rewards = []
+
+        state = env.reset()
+
+        for step in range(max_steps):
+            states.append(state)
+            action = agent.sample_action(state)
+            actions.append(action)
+
+            reward = env.reward(state)
+            rewards.append(reward)
+
+            state = env.transition(state, action)
+
+        returns = compute_returns(rewards, gamma)
+        returns = apply_baseline(returns)
+        agent.update_policy(states, actions, returns)
+
+        total_reward = sum(rewards)
+        mean_reward = np.mean(rewards)
+        policy_std = np.exp(agent.log_std)
+
+        # Store for in-code inspection
+        agent.episode_rewards.append(total_reward)
+        agent.policy_params.append([agent.w1, agent.b1, agent.log_std])
+
+        if episode % visualize_every == 0:
+            writer.add_scalar("Reward/Total", total_reward, episode)
+            writer.add_scalar("Reward/Mean", mean_reward, episode)
+            writer.add_scalar("Policy/LogStd", agent.log_std, episode)
+            writer.add_scalar("Policy/Std", policy_std, episode)
+            writer.flush()
+
+        #     MLflow logging (using the active run from main)
+        #     it is very slow! I decided to use tensorboard for logging during the run
+        #     mlflow.log_metric("reward_total", total_reward, step=episode)
+        #     mlflow.log_metric("reward_mean", mean_reward, step=episode)
+        #     mlflow.log_metric("policy_std", policy_std, step=episode)
+        #     # TensorBoard logging
+
+
+    # Save TensorBoard logs as MLflow artifact
+    writer.flush()
+    writer.close()
+    mlflow.log_artifacts(tensorboard_dir, artifact_path="tensorboard_logs")
+
+    return env, agent
+
 def train_reinforce(experiment_name, run_name=None, n_episodes=5000, max_steps=20, gamma=0.99, visualize_every=1):
     """Train REINFORCE agent with TensorBoard logging (MLflow managed externally)"""
 
@@ -233,6 +293,7 @@ def train_reinforce(experiment_name, run_name=None, n_episodes=5000, max_steps=2
     mlflow.log_artifacts(tensorboard_dir, artifact_path="tensorboard_logs")
 
     return env, agent
+
 @timeit
 def train_reinforce_plot(n_episodes=5000, max_steps=20, gamma=0.99, visualize_every=50):
     """Train REINFORCE agent"""
@@ -494,8 +555,10 @@ def main():
         mlflow.log_param("max_steps", 20)
 
         # Train agent (this will use the active MLflow run)
-    
-        env, agent = train_reinforce(experiment.name,run_name=run_name ,n_episodes=n_episodes, visualize_every=visualize_every)
+        env = Environment()
+        agent = REINFORCEAgent()
+        train_agent(experiment.name, run_name, env, agent, n_episodes=n_episodes, visualize_every=visualize_every)
+        # env, agent = train_reinforce(experiment.name,run_name=run_name, n_episodes=n_episodes, visualize_every=visualize_every)
 
         # Log final policy parameters
         mlflow.log_metric("final_w1", agent.w1)
