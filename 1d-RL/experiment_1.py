@@ -18,6 +18,8 @@ from RLGaussianLibrary import REINFORCEAgent, Environment, train_agent
 import mlflow
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
+from itertools import product
+from visualization_plots import test_learned_policy_plot
 def main():
     experiment = mlflow.set_experiment("REINFORCE_1D_Gaussian_Control_baseline_vs_no_baseline")
     max_runs = 30
@@ -26,16 +28,22 @@ def main():
     lr_std = 0.0005
     gamma = 0.99
     max_steps = 20
-    with mlflow.start_run() as run:
-        mlflow.log_param("learning_rate_mean", lr_mean)
-        mlflow.log_param("learning_rate_std", lr_std)
-        mlflow.log_param("n_episodes", n_episodes)
-        mlflow.log_param("gamma", gamma)
-        mlflow.log_param("max_steps", max_steps)
-        run_name = run.info.run_name
-        print(f"MLflow run started with ID: {run_name}")
-        #set tensorboard
-        for baseline in [True, False]:
+    agents = [
+        REINFORCEAgent(lr_mean=lr_mean, lr_std=lr_std),
+        REINFORCEAgent(lr_mean=lr_mean*2, lr_std=lr_std*2) #should give error   
+     ]
+    baseline = [True, False]
+    for combination in product(agents, baseline):
+        agent, baseline = combination
+        with mlflow.start_run() as run:
+            mlflow.log_param("learning_rate_mean", lr_mean)
+            mlflow.log_param("learning_rate_std", lr_std)
+            mlflow.log_param("n_episodes", n_episodes)
+            mlflow.log_param("gamma", gamma)
+            mlflow.log_param("max_steps", max_steps)
+            run_name = run.info.run_name
+            print(f"MLflow run started with ID: {run_name}")
+            #set tensorboard
             tensorboard_dir = Path("runs", experiment.name, f"reinforce_{run_name}_baseline_{baseline}")
             writer = SummaryWriter(log_dir=str(tensorboard_dir))
             print(f"TensorBoard logs will be saved to: {tensorboard_dir}")
@@ -50,7 +58,7 @@ def main():
                 history_reward_last_50_episodes = []
                 # Train agent
                 env = Environment()
-                agent = REINFORCEAgent()
+                agent.reset()  # Reset agent parameters
                 _, _, returns, rewards = train_agent(experiment.name, run_name, env, agent, n_episodes=n_episodes, log_tensorboard=False, baseline=baseline)
                 
                 # Add final policy parameters for this run to the lists
