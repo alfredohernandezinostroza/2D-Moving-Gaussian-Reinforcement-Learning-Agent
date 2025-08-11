@@ -228,7 +228,7 @@ def train_agent(experiment_name, run_name, env, agent, n_episodes=5000, max_step
         writer.close()
         mlflow.log_artifacts(tensorboard_dir, artifact_path="tensorboard_logs")
 
-    return env, agent
+    return env, agent, returns, rewards
 
 def train_reinforce(experiment_name, run_name=None, n_episodes=5000, max_steps=20, gamma=0.99, visualize_every=1, baseline=True):
     """Train REINFORCE agent with TensorBoard logging (MLflow managed externally)"""
