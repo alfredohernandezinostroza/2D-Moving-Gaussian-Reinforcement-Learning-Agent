@@ -11,6 +11,7 @@ Steps per episode: 20.
 Runs: 30
 
 """
+import math
 from statistics import mean
 from tqdm import tqdm
 from pathlib import Path
@@ -24,19 +25,22 @@ def main():
     experiment = mlflow.set_experiment("REINFORCE_1D_Gaussian_Control_baseline_vs_no_baseline")
     max_runs = 30
     n_episodes = 5000
-    lr_mean = 0.005
-    lr_std = 0.0005
+    lr_mean = [0.005, 0.01]
+    lr_std =  [0.0005, 0.001]
     gamma = 0.99
     max_steps = 20
-    agents = [
-        REINFORCEAgent(lr_mean=lr_mean, lr_std=lr_std),
-        REINFORCEAgent(lr_mean=lr_mean*2, lr_std=lr_std*2) #should give error   
-     ]
+    initial_w1 = [0.01, 0.1]
+    initial_log_std = [math.log(0.01), math.log(0.1)]
+    # agents = [
+    #     REINFORCEAgent(lr_mean=lr_mean, lr_std=lr_std),
+    #     REINFORCEAgent(lr_mean=lr_mean*2, lr_std=lr_std*2) #should give error   
+    #  ]
     baseline = [True, False]
-    for combination in product(agents, baseline):
-        agent, baseline = combination
+    for combination in product(initial_log_std, initial_w1, lr_mean, lr_std, baseline):
+        log_std, w1, lr_mean, lr_std, baseline = combination
+        agent = REINFORCEAgent(w1=w1, log_std=log_std, lr_mean=lr_mean, lr_std=lr_std)
         # Create unique identifier for this parameter combination
-        param_combination = f"lr_mean_{agent.lr_mean}_lr_std_{agent.lr_std}_baseline_{baseline}"
+        param_combination = f"initial_w1_{agent.initial_w1}_initial_log_std_{agent.initial_log_std}_lr_mean_{agent.lr_mean}_lr_std_{agent.lr_std}_baseline_{baseline}"
         
         # Check if run with this tag already exists
         existing_runs = mlflow.search_runs(
