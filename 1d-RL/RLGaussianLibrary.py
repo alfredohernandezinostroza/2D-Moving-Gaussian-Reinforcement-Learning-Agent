@@ -421,7 +421,7 @@ def visualize_training(env, agent, episode, last_states, fig, axes):
     
     plt.tight_layout()
 @timeit
-def test_learned_policy(env, agent):
+def test_learned_policy_plot(env, agent):
     """Test and visualize the learned policy"""
     
     print("\n=== REINFORCE Training Complete ===")
