@@ -36,8 +36,8 @@ def main():
     for combination in product(agents, baseline):
         agent, baseline = combination
         with mlflow.start_run() as run:
-            mlflow.log_param("learning_rate_mean", lr_mean)
-            mlflow.log_param("learning_rate_std", lr_std)
+            mlflow.log_param("learning_rate_mean", agent.lr_mean)
+            mlflow.log_param("learning_rate_std", agent.lr_std)
             mlflow.log_param("n_episodes", n_episodes)
             mlflow.log_param("gamma", gamma)
             mlflow.log_param("max_steps", max_steps)
