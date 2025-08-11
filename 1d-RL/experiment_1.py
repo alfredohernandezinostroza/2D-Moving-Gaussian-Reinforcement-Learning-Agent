@@ -82,6 +82,9 @@ def main():
             mlflow.log_metric("final_std", mean(history_std))
             mlflow.log_metric("Total reward average", mean(history_total_reward))
             mlflow.log_metric("Mean reward average", mean(history_mean_reward))
-
+            
+            # with tempfile.NamedTemporaryFile(prefix=f"reinforce_{run_name}_baseline_{baseline}_", suffix=".txt", delete=True) as tmp:
+            fig = test_learned_policy_plot(env, agent, show=False)
+            mlflow.log_figure(fig, f"example_reinforce_lr_std_{agent.lr_mean}_lr_std_{agent.lr_mean}_baseline_{baseline}_policy_plot.png")
 if __name__ == "__main__":
     main()
