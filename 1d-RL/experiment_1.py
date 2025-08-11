@@ -22,7 +22,6 @@ def main():
     experiment = mlflow.set_experiment("REINFORCE_1D_Gaussian_Control_baseline_vs_no_baseline")
     max_runs = 30
     n_episodes = 5000
-    visualize_every=10
     lr_mean = 0.005
     lr_std = 0.0005
     gamma = 0.99
