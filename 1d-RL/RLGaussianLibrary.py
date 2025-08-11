@@ -230,7 +230,7 @@ def train_agent(experiment_name, run_name, env, agent, n_episodes=5000, max_step
 
     return env, agent
 
-def train_reinforce(experiment_name, run_name=None, n_episodes=5000, max_steps=20, gamma=0.99, visualize_every=1):
+def train_reinforce(experiment_name, run_name=None, n_episodes=5000, max_steps=20, gamma=0.99, visualize_every=1, baseline=True):
     """Train REINFORCE agent with TensorBoard logging (MLflow managed externally)"""
 
     # Initialize environment and agent
