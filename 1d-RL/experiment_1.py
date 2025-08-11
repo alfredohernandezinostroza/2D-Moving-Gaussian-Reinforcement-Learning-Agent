@@ -35,12 +35,26 @@ def main():
     baseline = [True, False]
     for combination in product(agents, baseline):
         agent, baseline = combination
+        # Create unique identifier for this parameter combination
+        param_combination = f"lr_mean_{agent.lr_mean}_lr_std_{agent.lr_std}_baseline_{baseline}"
+        
+        # Check if run with this tag already exists
+        existing_runs = mlflow.search_runs(
+            experiment_ids=[experiment.experiment_id],
+            filter_string=f"tags.param_combination = '{param_combination}' and status = 'FINISHED'"
+        )
+        if len(existing_runs) > 0:
+            print(f"Skipping already completed combination: {param_combination}")
+            continue
         with mlflow.start_run() as run:
+            # Log the unique identifier as a tag
+            mlflow.set_tag("param_combination", param_combination)
             mlflow.log_param("learning_rate_mean", agent.lr_mean)
             mlflow.log_param("learning_rate_std", agent.lr_std)
             mlflow.log_param("n_episodes", n_episodes)
             mlflow.log_param("gamma", gamma)
             mlflow.log_param("max_steps", max_steps)
+            mlflow.log_param("baseline", baseline)
             run_name = run.info.run_name
             print(f"MLflow run started with ID: {run_name}")
             #set tensorboard
