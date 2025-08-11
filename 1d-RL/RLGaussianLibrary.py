@@ -36,7 +36,7 @@ def timeit(func):
 np.random.seed(42)
 
 class REINFORCEAgent:
-    def __init__(self, action_min=-10, action_max=10, lr_mean=0.005, lr_std=0.0005):
+    def __init__(self, w1=0.01, b1=0.0, log_std=math.log(2.0),  action_min=-10, action_max=10, lr_mean=0.005, lr_std=0.0005):
         """Initialize REINFORCE agent with proper scaling for large action spaces"""
         self.action_min = action_min
         self.action_max = action_max
