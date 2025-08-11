@@ -167,8 +167,8 @@ def apply_baseline(returns):
     
     return returns
 
-@timeit
-def train_agent(experiment_name, run_name, env, agent, n_episodes=5000, max_steps=20, gamma=0.99, visualize_every=1):
+# @timeit
+def train_agent(experiment_name, run_name, env, agent, n_episodes=5000, max_steps=20, gamma=0.99, visualize_every=1, log_tensorboard=True, baseline=True):
     """Train REINFORCE agent with TensorBoard logging (MLflow managed externally)"""
 
     # Set up TensorBoard logging
