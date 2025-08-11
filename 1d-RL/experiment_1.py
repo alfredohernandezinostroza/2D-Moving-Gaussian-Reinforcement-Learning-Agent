@@ -59,7 +59,7 @@ def main():
                 # Train agent
                 env = Environment()
                 agent.reset()  # Reset agent parameters
-                _, _, returns, rewards = train_agent(experiment.name, run_name, env, agent, n_episodes=n_episodes, log_tensorboard=False, baseline=baseline)
+                _, _, returns, rewards = train_agent(experiment.name, run_name, env, agent, gamma, n_episodes=n_episodes,log_tensorboard=False, baseline=baseline)
                 
                 # Add final policy parameters for this run to the lists
                 history_w1.append(agent.w1)
