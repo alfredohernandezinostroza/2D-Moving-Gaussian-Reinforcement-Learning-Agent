@@ -41,10 +41,14 @@ class REINFORCEAgent:
         self.action_min = action_min
         self.action_max = action_max
         
+        # Initial policy parameters in case of reset
+        self.initial_w1 = w1
+        self.initial_b1 = b1
+        self.initial_log_std = log_std 
         # Policy parameters - FIXED: Smaller initial weights for large action space
-        self.w1 = 0.01  # Reduced from 0.1
-        self.b1 = 0.0   # Bias
-        self.log_std = math.log(2.0)  # Increased initial exploration
+        self.w1 = w1  # Reduced from 0.1
+        self.b1 = b1   # Bias
+        self.log_std = log_std  # Increased initial exploration
         
         # Learning rates - ADJUSTED for larger action space
         self.lr_mean = lr_mean
@@ -53,7 +57,16 @@ class REINFORCEAgent:
         # Storage for training history
         self.episode_rewards = []
         self.policy_params = []  # [w1, b1, log_std] for each episode
+    def reset(self):
+        """Reset policy parameters to initial values"""
+        self.w1 = self.initial_w1
+        self.b1 = self.initial_b1
+        self.log_std = self.initial_log_std
         
+        # Clear training history
+        self.episode_rewards.clear()
+        self.policy_params.clear()
+
     def policy_mean(self, state):
         """Compute policy mean action for given state"""
         return self.action_max * math.tanh(self.w1 * state + self.b1)
