@@ -156,7 +156,7 @@ class Environment:
         """Reset environment to random initial state"""
         return np.random.uniform(self.state_min, self.state_max)
 
-def compute_returns(rewards, gamma=0.99):
+def compute_returns(rewards, gamma):
     """Compute discounted returns"""
     returns = []
     G = 0
@@ -181,7 +181,7 @@ def apply_baseline(returns):
     return returns
 
 # @timeit
-def train_agent(experiment_name, run_name, env, agent, n_episodes=5000, max_steps=20, gamma=0.99, visualize_every=1, log_tensorboard=True, baseline=True):
+def train_agent(experiment_name, run_name, env, agent, gamma, n_episodes=5000, max_steps=20, visualize_every=1, log_tensorboard=True, baseline=True):
     """Train REINFORCE agent with TensorBoard logging (MLflow managed externally)"""
 
     # Set up TensorBoard logging
